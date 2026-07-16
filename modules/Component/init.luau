@@ -7,9 +7,7 @@ local Trove = require(script.Parent.Trove)
 local DEFAULT_ANCESTORS: { Instance } = { game:GetService("Workspace"), game:GetService("Players") }
 
 type ClassLike<T> = {
-	new: (Instance) -> T,
-	destroy: ((T) -> nil)?,
-	Destroy: ((T) -> nil)?,
+	new: (Instance, ...any) -> T,
 }
 
 type ComponentEntry<T> = { comp: T?, trove: Trove.Trove }
