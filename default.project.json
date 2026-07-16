@@ -1,6 +1,6 @@
 {
   "name": "zea-rbx",
   "tree": {
-    "$path": "src"
+    "$path": "modules"
   }
 }
