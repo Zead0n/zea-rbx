@@ -1,5 +1,5 @@
 [package]
-name = "zeadon/component"
+name = "zead0n/component"
 description = "A simplified version of sleitnik's Component util"
 version = "0.1.0"
 licence = "MIT"
