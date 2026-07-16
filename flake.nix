@@ -1,5 +1,5 @@
 {
-  description = "A very basic flake";
+  description = "Development flake";
 
   inputs = { nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable"; };
 
@@ -13,9 +13,14 @@
         (system: f { pkgs = import nixpkgs { inherit system; }; });
     in {
       devShells = mapSystems ({ pkgs }:
-        with pkgs; {
-          default =
-            mkShell { packages = [ luau-lsp rojo stylua selene wally ]; };
+        let
+          wally-package-types =
+            pkgs.callPackage ./nix/wally-package-types.nix { };
+        in with pkgs; {
+          default = mkShell {
+            packages =
+              [ luau-lsp rojo stylua selene wally wally-package-types ];
+          };
         });
     };
 }
