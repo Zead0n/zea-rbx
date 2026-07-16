@@ -5,6 +5,7 @@
 sourcemap.json
 
 **/Packages
+**/wally.lock
 
 .direnv/
 .envrc
