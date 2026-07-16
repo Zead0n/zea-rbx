@@ -9,4 +9,4 @@ realm = "shared"
 [dependencies]
 Signal = "sleitnick/signal@^2"
 Trove = "sleitnick/trove@^1"
-Promise = "evaera/promise@^4"
+Promise = "lukadev-0/typed-promise@^4"
