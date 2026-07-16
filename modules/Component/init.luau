@@ -1,8 +1,8 @@
 local CollectionService = game:GetService("CollectionService")
 
-local Promise = require(script.Packages.Promise)
-local Signal = require(script.Packages.Signal)
-local Trove = require(script.Packages.Trove)
+local Promise = require(script.Parent.Promise)
+local Signal = require(script.Parent.Signal)
+local Trove = require(script.Parent.Trove)
 
 local DEFAULT_ANCESTORS: { Instance } = { game:GetService("Workspace"), game:GetService("Players") }
 
