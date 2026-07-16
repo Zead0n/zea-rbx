@@ -1,6 +1,8 @@
 [package]
 name = "zeadon/component"
+description = "A simplified version of sleitnik's Component util"
 version = "0.1.0"
+licence = "MIT"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 
