@@ -1,2 +1,2 @@
 # zea-rbx
-A collection of roblox utilities
+A personal collection of roblox utilities
