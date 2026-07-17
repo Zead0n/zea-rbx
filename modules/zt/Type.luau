@@ -1,26 +1,29 @@
 --!strict
 
-export type TypeInfo = {
+type TypeInfo = {
+	kind: string,
 	_match: (any) -> (boolean, string?),
-	-- _assert: (any) -> any,
-}
-
-type TypeMt = {
-	__call: (TypeMt, ...any) -> ...any,
-	matches: (TypeMt, ...any) -> (boolean, string?),
-	assert: (TypeMt, ...any) -> ...any,
+	_chain: { any },
 }
 
 local Type = {}
 Type.__index = Type
 
-type Type = typeof(setmetatable({} :: TypeInfo, Type))
+export type Type<T...> = typeof(setmetatable({} :: TypeInfo, Type))
 
-function Type.matches(self: Type, ...: any): (boolean, string?)
+function Type.new(kind: string, matcher: (any) -> (boolean, string?), chain: { Type<any> }?)
+	return setmetatable({ kind = kind, _match = matcher, _chain = chain }, Type) :: any
+end
+
+function Type.isZtType(value: any): boolean
+	return typeof(value) == "table" and getmetatable(value) == Type
+end
+
+function Type.matches<T...>(self: Type<T...>, ...: any): (boolean, string?)
 	return self._match(...)
 end
 
-function Type.assert<T...>(self: Type, ...: T...): T...
+function Type.assert<T...>(self: Type<T...>, ...): T...
 	local ok, reason = self:matches(...)
 	if not ok then
 		error(reason)
