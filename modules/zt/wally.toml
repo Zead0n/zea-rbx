@@ -1,0 +1,9 @@
+[package]
+name = "zead0n/zt"
+description = "A simplified modification of gt(GreenTea)"
+version = "0.1.0"
+licence = "MIT"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]

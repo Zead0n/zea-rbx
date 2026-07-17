@@ -26,12 +26,10 @@ local tupleCast: <Out...>(...any) -> Out... = function(...)
 end
 
 local function tupleTypeCheck<T...>(...): ({ Type.Type<any> }?, boolean?, string?)
-	-- local args: { [number]: any, n: number } = table.pack(...)
 	local hasVarg = false
 	local types = { ... }
 
 	for index, argType: Type.Type<any> in types do
-		-- local argType: Type.Type<any> = args[index] :: any
 		if not Type.isZtType(argType) then
 			continue
 		end
@@ -101,7 +99,7 @@ function zt.dictionary<K, V>(keyType: K, valueType: V): { [K]: V }
 		for key, value in values do
 			local keyOk: boolean, keyResult: string? = (keyType :: any):matches(key)
 			if not keyOk then
-				return false, `key type error: '{keyResult}'`
+				return false, `key type error: {keyResult}`
 			end
 
 			local valueOk: boolean, valueResult: string? = (valueType :: any):matches(value)
@@ -127,14 +125,11 @@ end
 
 local function tupleMatcher(types: { Type.Type<any> }, hasVarg: boolean)
 	return function(...): (boolean, string?)
-		-- local values = table.pack(value)
-
 		for i, elem in { ... } do
 			if i > #types and not hasVarg then
 				return false, "tuple exceeds limit"
 			end
 
-			-- local elem: any = values[i]
 			local zType: Type.Type<any> = types[math.min(i, #types)]
 
 			local ok: boolean, result: string? = zType:matches(elem)
@@ -156,26 +151,6 @@ function zt.tuple<T...>(...: T...): T...
 	if not types or not hasVarg then
 		error(checkErr or "Unknown error while checking tuple")
 	end
-
-	-- local function matcher(value): (boolean, string?)
-	-- 	local values = table.pack(value)
-	--
-	-- 	for i = 1, values.n do
-	-- 		if i > #types and not hasVarg then
-	-- 			return false, "tuple exceeds limit"
-	-- 		end
-	--
-	-- 		local elem: any = values[i]
-	-- 		local zType: Type.Type<any> = types[math.min(i, #types)]
-	--
-	-- 		local ok: boolean, result: string? = zType:matches(elem)
-	-- 		if not ok then
-	-- 			return false, `tuple type error: {result}`
-	-- 		end
-	-- 	end
-	--
-	-- 	return true
-	-- end
 
 	local matcher = tupleMatcher(types, hasVarg)
 	return tupleCast(Type.new("tuple", matcher))
