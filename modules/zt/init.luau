@@ -4,6 +4,8 @@ local Type = require(script.Type)
 local Raw = require(script.Raw)
 local Structure = require(script.Structure)
 
+export type ZtType = Type.Type
+
 local zt = {}
 
 zt.isZtType = Type.isZtType
