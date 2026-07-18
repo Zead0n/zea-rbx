@@ -295,19 +295,20 @@ function Structure.struct<T>(template: T): T
 		genericTemplate[keyType] = elemType
 	end
 
+	local literalsTable = {}
+	for literal, elemType in literalTemplate do
+		if elemType.kind == "nil" or elemType.kind == "optional" then
+			table.insert(literalsTable, literal)
+		end
+	end
+
 	local function matcher(value): (boolean, string?)
 		local isTable: boolean, result: string? = (Raw.table :: any):matches(value)
 		if not isTable then
 			return false, result
 		end
 
-		local missingLiterals = {}
-		for literal, elemType in literalTemplate do
-			if elemType.kind == "nil" or elemType.kind == "optional" then
-				table.insert(missingLiterals, literal)
-			end
-		end
-
+		local missingLiterals = table.clone(literalsTable)
 		local errors = {}
 		for key, elem in value do
 			-- Check literal key value
