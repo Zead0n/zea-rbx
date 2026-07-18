@@ -1,5 +1,3 @@
-local Promise = require(script.Parent.Promise)
-
 type PredicateFn = (module: ModuleScript) -> boolean
 
 local Loader = {}
@@ -59,12 +57,14 @@ function Loader.descendantScripts(parent: Instance, predicate: PredicateFn?): { 
 end
 
 --[[
-	Create a starter function that when invoked, passes the arguments to the function/method
-	and returns a Promise of the results from the call(s).
+	Create a starter function that when invoked, calls and passes the arguments to the
+	function/method in parallel and returns a table of the results from the call(s).
+
+	Use `isMethod` to specify whether the callback is a function or method.
 
 	This could be used to start character systems that need to be cleaned up on death for example.
 
-	> ![NOTE]: I do not recommend using this example in your projects;
+	> [NOTE]: I do not recommend using this example in your projects;
 	> Make it as simple or robust as you need.
 
 	```lua
@@ -92,41 +92,63 @@ end
 	local Loader = require(path.to.Loader)
 
 	local childScripts = Loader.childScripts(script)
+	local startCharacterSystems = Loader.createPromiseStarter(childScripts, "startCharacter")
 
-	local startCharacterSystems = Loader.createStarter(childScripts, "startCharacter")
 	player.CharacterAdded:Connect(function(character)
-		startCharacterSystems(character):andThen(function(cleanups)
-			charcter.Humanoid.Died:Wait()
+		local cleanups = startCharacterSystems(character)
 
-			for _, cleanup in cleanups do
-				cleanup()
-			end
-		end)
+		charcter.Humanoid.Died:Wait()
+
+		for _, cleanup in cleanups do
+			cleanup()
+		end
 	end)
 	```
 ]]
-function Loader.createStarter(
-	scripts: { ModuleScript },
-	functionName: string,
-	isMethod: boolean?
-): (...any) -> Promise.TypedPromise<{ any }>
-	local function call(moduleScript: ModuleScript, ...)
+function Loader.createStarter(scripts: { ModuleScript }, functionName: string, isMethod: boolean?): (...any) -> { any }
+	local function createCaller(moduleScript: ModuleScript)
 		local module = require(moduleScript)
 		local method = module[functionName]
 
-		if type(method) == "function" then
+		if typeof(method) ~= "function" then
 			warn(`'{moduleScript.Name}' does not have '{functionName}' in order to start`)
 		end
 
-		debug.setmemorycategory(moduleScript.Name)
-		return if not isMethod then method(...) else method(module, ...)
+		return function(...)
+			debug.setmemorycategory(moduleScript.Name)
+			return if not isMethod then method(...) else method(module, ...)
+		end
+	end
+
+	local callers = {}
+	for _, ms in scripts do
+		table.insert(callers, createCaller(ms))
 	end
 
 	return function(...)
-		local args = ...
-		return Promise.each(scripts, function(moduleScript: ModuleScript)
-			return call(moduleScript, args)
-		end)
+		local results = {}
+
+		local t = coroutine.running()
+
+		local finishedCalls = 0
+
+		for i, call in callers do
+			task.defer(function(...)
+				local result = call(...)
+				if result then
+					table.insert(results, result)
+				end
+
+				finishedCalls += 1
+				if finishedCalls >= #callers then
+					coroutine.resume(t)
+				end
+			end, ...)
+		end
+
+		coroutine.yield()
+
+		return results
 	end
 end
 

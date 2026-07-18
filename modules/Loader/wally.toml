@@ -1,10 +1,9 @@
 [package]
 name = "zead0n/loader"
-description = "A modified version of sleitnick's Loader util with a bit of spice"
+description = "A modification sleitnick's Loader utility with some spice."
 version = "0.1.0"
 licence = "MIT"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 
 [dependencies]
-Promise = "lukadev-0/typed-promise@^4"
