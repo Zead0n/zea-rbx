@@ -1,6 +1,6 @@
 [package]
 name = "zead0n/zt"
-description = "A simplified modification of gt(GreenTea)"
+description = "A modification of gt(GreenTea) to be a bit more simple."
 version = "0.1.0"
 licence = "MIT"
 registry = "https://github.com/UpliftGames/wally-index"
