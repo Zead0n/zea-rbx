@@ -39,7 +39,7 @@ local function tupleTypeCheck<T...>(...): ({ Type.Type }?, boolean?, string?)
 			return nil, nil, "tuple: cannot have a tuple within."
 		end
 
-		if argType.kind ~= "vararg" then
+		if argType.kind == "vararg" then
 			if index == #types then
 				hasVarg = true
 			else
