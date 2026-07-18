@@ -57,4 +57,11 @@ zt.wrapFn = Structure.wrapFn
 zt.wrapArgsFn = Structure.wrapArgsFn
 zt.wrapReturnsFn = Structure.wrapReturnsFn
 
-return zt
+local mt = {
+	__call = function<T>(self, structTemplate: T): T
+		assert(typeof(structTemplate) == "table", "zt only takes a table to make a struct.")
+		return zt.struct(structTemplate)
+	end,
+}
+
+return setmetatable(zt, mt)
