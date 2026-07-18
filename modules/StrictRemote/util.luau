@@ -1,3 +1,5 @@
+--!strict
+
 export type Resolver = (any, ...any) -> (boolean, string?, ...any)
 
 local util = {}

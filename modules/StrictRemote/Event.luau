@@ -1,3 +1,5 @@
+--!strict
+
 local RunService = game:GetService("RunService")
 
 local util = require(script.Parent.util)
@@ -68,7 +70,7 @@ function Event.new<A...>(name: string, parent: Instance, resolver: util.Resolver
 	return self
 end
 
-function Event.FireServer<A...>(self: Event<A...>, ...: A...)
+function Event.FireServer<T, A...>(self: Event<A...>, ...: A...)
 	local ok, err = self._resolver(self._args, ...)
 	if not ok then
 		error(err)

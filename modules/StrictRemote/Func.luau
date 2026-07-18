@@ -1,3 +1,5 @@
+--!strict
+
 local RunService = game:GetService("RunService")
 
 local util = require(script.Parent.util)
@@ -7,25 +9,25 @@ local IS_SERVER = RunService:IsServer()
 local Func = {}
 Func.__index = Func
 
-export type Func<T..., R...> = typeof(setmetatable(
+export type Func<A..., R...> = typeof(setmetatable(
 	{} :: {
-		OnServerInvoke: (Player, T...) -> R...,
-		OnClientInvoke: (T...) -> R...,
+		OnServerInvoke: (Player, A...) -> R...,
+		OnClientInvoke: (A...) -> R...,
 		remote: RemoteFunction,
 		_resolver: util.Resolver,
-		_args: (T...) -> T...,
-		_returns: (R...) -> R...,
+		_args: (A...) -> ...any,
+		_returns: (...any) -> R...,
 	},
 	Func
 ))
 
-function Func.new<T..., R...>(
+function Func.new<A..., R...>(
 	name: string,
 	parent: Instance,
 	resolver: util.Resolver,
-	args: (T...) -> T...,
+	args: (A...) -> A...,
 	returns: (R...) -> R...
-): Func<T..., R...>
+): Func<A..., R...>
 	local remoteFunction: RemoteFunction
 	if IS_SERVER then
 		local duplicateRemote = parent:FindFirstChild(name)
@@ -46,7 +48,7 @@ function Func.new<T..., R...>(
 		remoteFunction = possibleRemote
 	end
 
-	local self = setmetatable({}, Func) :: Func<T..., R...>
+	local self = setmetatable({}, Func) :: Func<A..., R...>
 
 	self.remote = remoteFunction
 	self._resolver = resolver
@@ -56,15 +58,15 @@ function Func.new<T..., R...>(
 	return self
 end
 
-function Func.SetServerInvoke<T..., R...>(self: Func<T..., R...>, onInvoke: (Player, T...) -> R...)
+function Func.SetServerInvoke<A..., R...>(self: Func<A..., R...>, onInvoke: (Player, A...) -> R...)
 	self.remote.OnServerInvoke = onInvoke
 end
 
-function Func.SetClientInvoke<T..., R...>(self: Func<T..., R...>, onInvoke: (T...) -> R...)
+function Func.SetClientInvoke<A..., R...>(self: Func<A..., R...>, onInvoke: (A...) -> R...)
 	self.remote.OnClientInvoke = onInvoke
 end
 
-function Func.InvokeServer<T..., R...>(self: Func<T..., R...>, ...: T...): R...
+function Func.InvokeServer<A..., R...>(self: Func<A..., R...>, ...: A...): R...
 	local ok, err = self._resolver(self._args, ...)
 	if not ok then
 		error(err)
@@ -73,7 +75,7 @@ function Func.InvokeServer<T..., R...>(self: Func<T..., R...>, ...: T...): R...
 	return util.assert(self._resolver(self._returns, self.remote:InvokeServer(...)))
 end
 
-function Func.InvokeClient<T..., R...>(self: Func<T..., R...>, player: Player, ...: T...): R...
+function Func.InvokeClient<A..., R...>(self: Func<A..., R...>, player: Player, ...: A...): R...
 	local ok, err = self._resolver(self._args, ...)
 	if not ok then
 		error(err)

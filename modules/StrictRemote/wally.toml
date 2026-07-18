@@ -2,6 +2,7 @@
 name = "zead0n/strictremote"
 description = "A take on TypedRemote by sleitnick that integrates with a runtime checker"
 version = "0.1.0"
+licence = "MIT"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 
