@@ -1,5 +1,6 @@
 --!strict
 
+local Classes = require(script.Classes)
 local Type = require(script.Type)
 local Raw = require(script.Raw)
 local Structure = require(script.Structure)
@@ -58,6 +59,15 @@ zt.fn = Structure.fn
 zt.wrapFn = Structure.wrapFn
 zt.wrapArgsFn = Structure.wrapArgsFn
 zt.wrapReturnsFn = Structure.wrapReturnsFn
+
+zt.IsA = function(obj: string)
+	local objClass = Classes[obj]
+	if not objClass then
+		error(`'{obj}' Class type is not valid, or is missing`)
+	end
+
+	return Classes[obj]
+end
 
 local mt = {
 	__call = function<T>(self, structTemplate: T): T

@@ -12,10 +12,10 @@ local Raw = require(script.Parent.Raw)
 -- 	return Type.isZtType(args[1])
 -- end
 
-local function zTypeCheck(...: any): string?
+local function ztTypeCheck(...: any): string?
 	for i, v in { ... } do
 		if not Type.isZtType(v) then
-			return `argument #{i}, is not a zType.`
+			return `argument #{i}, is not a ZtType.`
 		end
 	end
 
@@ -32,7 +32,7 @@ local function tupleTypeCheck<T...>(...): ({ Type.Type }?, boolean?, string?)
 
 	for index, argType: Type.Type in types do
 		if not Type.isZtType(argType) then
-			return nil, nil, `tuple: argument #{index} is not a zType.`
+			return nil, nil, `tuple: argument #{index} is not a ZtType.`
 		end
 
 		if argType.kind == "tuple" then
@@ -54,8 +54,8 @@ end
 local Structure = {}
 
 function Structure.dictionary<K, V>(keyType: K, valueType: V): { [K]: V }
-	assert(Type.isZtType(keyType), "keyType (argument #1), is not a zType")
-	assert(Type.isZtType(keyType), "valueType (argument #2), is not a zType")
+	assert(Type.isZtType(keyType), "keyType (argument #1), is not a ZtType")
+	assert(Type.isZtType(keyType), "valueType (argument #2), is not a ZtType")
 
 	local function matcher(values): (boolean, string?)
 		local ok: boolean, result: string? = (Raw.table :: any):matches(values)
@@ -82,7 +82,7 @@ function Structure.dictionary<K, V>(keyType: K, valueType: V): { [K]: V }
 end
 
 function Structure.array<T>(valueType: T): { T }
-	assert(Type.isZtType(valueType), "valueType (argument #1), is not a zType")
+	assert(Type.isZtType(valueType), "valueType (argument #1), is not a ZtType")
 
 	return Structure.dictionary(Raw.number, valueType)
 end
@@ -96,11 +96,11 @@ local function tupleMatcher(types: { Type.Type }, hasVarg: boolean)
 		end
 
 		for i, elem in args do
-			local zType = types[math.min(i, #types)]
+			local argType = types[math.min(i, #types)]
 
-			local ok: boolean = (zType :: any):matches(elem)
+			local ok: boolean = (argType :: any):matches(elem)
 			if not ok then
-				return false, `argument #{i} expected '{tostring(zType)}', got '{typeof(elem)}' instead`
+				return false, `argument #{i} expected '{tostring(argType)}', got '{typeof(elem)}' instead`
 			end
 		end
 
@@ -108,7 +108,7 @@ local function tupleMatcher(types: { Type.Type }, hasVarg: boolean)
 	end
 end
 function Structure.tuple<T...>(...: T...): T...
-	local err = zTypeCheck(...)
+	local err = ztTypeCheck(...)
 	if err then
 		error(err)
 	end
@@ -123,7 +123,7 @@ function Structure.tuple<T...>(...: T...): T...
 end
 
 function Structure.vararg<T>(valueType: T): ...T
-	assert(Type.isZtType(valueType), "valueType (argument #1), is not a zType")
+	assert(Type.isZtType(valueType), "valueType (argument #1), is not a ZtType")
 
 	local function matcher(...): (boolean, string?)
 		for i, value in { ... } do
@@ -140,7 +140,7 @@ function Structure.vararg<T>(valueType: T): ...T
 end
 
 function Structure.optional<T>(valueType: T): T?
-	assert(Type.isZtType(valueType), "valueType (argument #1), is not a zType")
+	assert(Type.isZtType(valueType), "valueType (argument #1), is not a ZtType")
 
 	local function matcher(value): (boolean, string?)
 		if value == nil then
@@ -179,7 +179,7 @@ local function unionMatcher(types: { Type.Type })
 	end
 end
 local union: UnionFunc = function<T>(...: T): T
-	local err = zTypeCheck(...)
+	local err = ztTypeCheck(...)
 	if err then
 		error(err)
 	end
@@ -224,8 +224,8 @@ function Structure.returns<T...>(...: T...): () -> T...
 end
 
 function Structure.fn<Args..., Rets...>(args: (Args...) -> (), returns: () -> Rets...): (Args...) -> Rets...
-	assert(Type.isZtType(args), "args must be zType. Use zt.args to specify args.")
-	assert(Type.isZtType(returns), "returns must be zType. Use zt.returns to specify returns.")
+	assert(Type.isZtType(args), "args must be ZtType. Use zt.args to specify args.")
+	assert(Type.isZtType(returns), "returns must be ZtType. Use zt.returns to specify returns.")
 
 	local function matcher(value): (boolean, string?)
 		local valueTypeName = typeof(value)
@@ -240,8 +240,8 @@ function Structure.fn<Args..., Rets...>(args: (Args...) -> (), returns: () -> Re
 end
 
 function Structure.wrapFn<Args..., Rets...>(args: (Args...) -> (), returns: () -> Rets..., fn: (Args...) -> Rets...): (Args...) -> Rets...
-	assert(Type.isZtType(args), "args must be zType. Use zt.args to specify args.")
-	assert(Type.isZtType(returns), "returns must be zType. Use zt.returns to specify returns.")
+	assert(Type.isZtType(args), "args must be ZtType. Use zt.args to specify args.")
+	assert(Type.isZtType(returns), "returns must be ZtType. Use zt.returns to specify returns.")
 
 	return function(...)
 		(args :: any):concatAssert("function arguments: ", ...)
@@ -250,7 +250,7 @@ function Structure.wrapFn<Args..., Rets...>(args: (Args...) -> (), returns: () -
 end
 
 function Structure.wrapArgsFn<Args...>(args: (Args...) -> (), fn: (Args...) -> ...any): (Args...) -> ...any
-	assert(Type.isZtType(args), "args must be zType. Use zt.args to specify args.")
+	assert(Type.isZtType(args), "args must be ZtType. Use zt.args to specify args.")
 
 	return function(...)
 		(args :: any):concatAssert("function arguments: ", ...)
@@ -259,7 +259,7 @@ function Structure.wrapArgsFn<Args...>(args: (Args...) -> (), fn: (Args...) -> .
 end
 
 function Structure.wrapReturnsFn<Rets...>(returns: () -> Rets..., fn: (...any) -> Rets...): (...any) -> Rets...
-	assert(Type.isZtType(returns), "returns must be zType. Use zt.returns to specify returns.")
+	assert(Type.isZtType(returns), "returns must be ZtType. Use zt.returns to specify returns.")
 
 	return function(...)
 		return (returns :: any):concatAssert("function returns: ", (fn :: any)(...))
@@ -273,7 +273,7 @@ function Structure.struct<T>(template: T): T
 	local genericTemplate = {}
 	for keyType, elemType in template :: any do
 		if not Type.isZtType(elemType) then
-			error(`value of '{tostring(keyType)}' is not, zType`, 2)
+			error(`value of '{tostring(keyType)}' is not, ZtType`, 2)
 		end
 
 		if not Type.isZtType(keyType) then
