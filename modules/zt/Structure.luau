@@ -66,12 +66,12 @@ function Structure.dictionary<K, V>(keyType: K, valueType: V): { [K]: V }
 		for key, value in values do
 			local keyOk: boolean = (keyType :: any):matches(key)
 			if not keyOk then
-				return false, `key type $chain1 expected, got {typeof(key)} instead.`
+				return false, `key type '$chain1' expected, got {typeof(key)} instead.`
 			end
 
 			local valueOk: boolean = (valueType :: any):matches(value)
 			if not valueOk then
-				return false, `value type $chain2 expected, got {typeof(value)} instead.`
+				return false, `value type '$chain2' expected, got {typeof(value)} instead.`
 			end
 		end
 
@@ -269,6 +269,7 @@ end
 function Structure.struct<T>(template: T): T
 	assert(typeof(template) == "table", "expected a table to create struct")
 
+	local literalTemplate = {}
 	local genericTemplate = {}
 	for keyType, elemType in template :: any do
 		if not Type.isZtType(elemType) then
@@ -276,6 +277,7 @@ function Structure.struct<T>(template: T): T
 		end
 
 		if not Type.isZtType(keyType) then
+			literalTemplate[keyType] = elemType
 			continue
 		end
 
@@ -299,6 +301,13 @@ function Structure.struct<T>(template: T): T
 			return false, result
 		end
 
+		local missingLiterals = {}
+		for literal, elemType in literalTemplate do
+			if elemType.kind == "nil" or elemType.kind == "optional" then
+				table.insert(missingLiterals, literal)
+			end
+		end
+
 		local errors = {}
 		for key, elem in value do
 			-- Check literal key value
@@ -309,6 +318,7 @@ function Structure.struct<T>(template: T): T
 					table.insert(errors, `'{tostring(key)}' key is type {typeof(elem)}, expected {tostring(elemType)}`)
 				end
 
+				table.remove(missingLiterals, table.find(missingLiterals, key))
 				continue
 			end
 
@@ -337,6 +347,10 @@ function Structure.struct<T>(template: T): T
 			if not validGenericKey then
 				table.insert(errors, `key {tostring(key)} does not have a valid field name or generic type`)
 			end
+		end
+
+		for _, missingLiteral in missingLiterals do
+			table.insert(errors, `'{tostring(missingLiteral)}' is missing.`)
 		end
 
 		local isValid = #errors <= 0
