@@ -2,8 +2,8 @@
 
 local Type = require(script.Parent.Type)
 
-local function primitiveMatcher(expectedType: string, useType: boolean?): (any) -> (boolean, string?)
-	return function(value)
+local function primitiveType(expectedType: string, useType: boolean?)
+	local function primitiveMatcher(value): (boolean, string?)
 		local typeName = if not useType then typeof(value) else type(value)
 		if typeName ~= expectedType then
 			return false, `'{expectedType}' expected, got '{typeName}' instead`
@@ -11,11 +11,8 @@ local function primitiveMatcher(expectedType: string, useType: boolean?): (any) 
 
 		return true
 	end
-end
 
-local function primitiveType(expectedType: string, useType: boolean?)
-	-- return setmetatable({ _match = primitiveMatcher(expectedType, useType) }, Type) :: any
-	return Type.new(expectedType, primitiveMatcher(expectedType, useType))
+	return Type.new(expectedType, primitiveMatcher)
 end
 
 -- NOTE: This is the same as primitiveType for now.

@@ -26,11 +26,11 @@ local tupleCast: <Out...>(...any) -> Out... = function(...)
 	return ...
 end
 
-local function tupleTypeCheck<T...>(...): ({ Type.Type<any> }?, boolean?, string?)
+local function tupleTypeCheck<T...>(...): ({ Type.Type }?, boolean?, string?)
 	local hasVarg = false
 	local types = { ... }
 
-	for index, argType: Type.Type<any> in types do
+	for index, argType: Type.Type in types do
 		if not Type.isZtType(argType) then
 			local warnMsg =
 				`tuple: argument #{index} is not a zType.\nthis will affect the order which values are checked`
@@ -96,7 +96,7 @@ function Structure.array<T>(v: T): { T }
 	return Structure.dictionary(Raw.number, v)
 end
 
-local function tupleMatcher(types: { Type.Type<any> }, hasVarg: boolean)
+local function tupleMatcher(types: { Type.Type }, hasVarg: boolean)
 	return function(...): (boolean, string?)
 		local args = { ... }
 
@@ -181,7 +181,7 @@ type UnionFunc =
 	& (<T1, T2, T3, T4, T5, T6>(T1, T2, T3, T4, T5, T6) -> T1 | T2 | T3 | T4 | T5 | T6)
 	& (<T>(...T) -> T)
 
-local function unionMatcher(types: { Type.Type<any> })
+local function unionMatcher(types: { Type.Type })
 	return function(value): (boolean, string?)
 		for _, ztype in types do
 			local ok: boolean, _ = (ztype :: any):matches(value)
@@ -222,7 +222,7 @@ function Structure.literal<T>(valueLiteral: T): T
 end
 
 function Structure.stringEnum(...: string): string
-	local types: { Type.Type<> } = {}
+	local types: { Type.Type } = {}
 	for _, validValue in { ... } do
 		table.insert(types, Structure.literal(validValue) :: any)
 	end
@@ -310,23 +310,25 @@ function Structure.struct<T>(template: T): T
 		local errors = {}
 		for key, elem in value do
 			-- Check literal key value
-			local elemType = (template :: any)[key] :: Type.Type<>
+			local elemType = (template :: any)[key] :: Type.Type
 			if elemType then
 				local ok: boolean = elemType:matches(elem)
-				if ok then
-					continue
+				if not ok then
+					table.insert(errors, `{tostring(key)} is type {typeof(elem)}, expected {tostring(elemType)}`)
 				end
 
-				table.insert(errors, `{tostring(key)} is type {typeof(elem)}, expected {tostring(elemType)}`)
+				continue
 			end
 
 			-- Check generic key value
-			for genericKeyType: Type.Type<>, genericElemType: Type.Type<> in genericTemplate do
+			local validGenericKey = false
+			for genericKeyType: Type.Type, genericElemType: Type.Type in genericTemplate do
 				local matchesKey = genericKeyType:matches(key)
 				if not matchesKey then
 					continue
 				end
 
+				validGenericKey = true
 				local matchesElem = genericElemType:matches(elem)
 				if not matchesElem then
 					table.insert(
@@ -338,6 +340,10 @@ function Structure.struct<T>(template: T): T
 				end
 
 				break
+			end
+
+			if not validGenericKey then
+				table.insert(errors, `key {tostring(key)} does not have a valid field name or generic type`)
 			end
 		end
 
