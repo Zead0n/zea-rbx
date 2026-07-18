@@ -15,7 +15,7 @@ local Raw = require(script.Parent.Raw)
 local function zTypeCheck(...: any): string?
 	for i, v in { ... } do
 		if not Type.isZtType(v) then
-			return `argument {i} isn't a ZType.`
+			return `argument #{i}, is not a zType.`
 		end
 	end
 
@@ -58,10 +58,8 @@ end
 local Structure = {}
 
 function Structure.dictionary<K, V>(keyType: K, valueType: V): { [K]: V }
-	local err = zTypeCheck(keyType, valueType)
-	if err then
-		error(err)
-	end
+	assert(Type.isZtType(keyType), "keyType (argument #1), is not a zType")
+	assert(Type.isZtType(keyType), "valueType (argument #2), is not a zType")
 
 	local function matcher(values): (boolean, string?)
 		local ok: boolean, result: string? = (Raw.table :: any):matches(values)
@@ -87,13 +85,10 @@ function Structure.dictionary<K, V>(keyType: K, valueType: V): { [K]: V }
 	return Type.new("table", matcher, { keyType :: any, valueType :: any }) :: any
 end
 
-function Structure.array<T>(v: T): { T }
-	local err = zTypeCheck(v)
-	if err then
-		error(err)
-	end
+function Structure.array<T>(valueType: T): { T }
+	assert(Type.isZtType(valueType), "valueType (argument #1), is not a zType")
 
-	return Structure.dictionary(Raw.number, v)
+	return Structure.dictionary(Raw.number, valueType)
 end
 
 local function tupleMatcher(types: { Type.Type }, hasVarg: boolean)
@@ -132,10 +127,7 @@ function Structure.tuple<T...>(...: T...): T...
 end
 
 function Structure.vararg<T>(valueType: T): ...T
-	local err = zTypeCheck(valueType)
-	if err then
-		error(err)
-	end
+	assert(Type.isZtType(valueType), "valueType (argument #1), is not a zType")
 
 	local function matcher(...): (boolean, string?)
 		for i, value in { ... } do
@@ -152,10 +144,7 @@ function Structure.vararg<T>(valueType: T): ...T
 end
 
 function Structure.optional<T>(valueType: T): T?
-	local err = zTypeCheck(valueType)
-	if err then
-		error(err)
-	end
+	assert(Type.isZtType(valueType), "valueType (argument #1), is not a zType")
 
 	local function matcher(value): (boolean, string?)
 		if value == nil then
@@ -255,6 +244,9 @@ function Structure.fn<Args..., Rets...>(args: (Args...) -> (), returns: () -> Re
 end
 
 function Structure.wrapFn<Args..., Rets...>(args: (Args...) -> (), returns: () -> Rets..., fn: (Args...) -> Rets...): (Args...) -> Rets...
+	assert(Type.isZtType(args), "args must be zType. Use zt.args to specify args.")
+	assert(Type.isZtType(returns), "returns must be zType. Use zt.returns to specify returns.")
+
 	return function(...)
 		(args :: any):concatAssert("function arguments: ", ...)
 		return (returns :: any):concatAssert("function returns: ", (fn :: any)(...))
