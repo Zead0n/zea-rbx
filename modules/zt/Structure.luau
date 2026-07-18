@@ -95,8 +95,8 @@ local function tupleMatcher(types: { Type.Type }, hasVarg: boolean)
 			return false, "tuple exceeds limit"
 		end
 
-		for i, zType in types do
-			local elem = args[i]
+		for i, elem in args do
+			local zType = types[math.min(i, #types)]
 
 			local ok: boolean = (zType :: any):matches(elem)
 			if not ok then
