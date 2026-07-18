@@ -121,9 +121,12 @@ function Component._registerInstance<T>(self: Component<T>, instance: Instance)
 	end
 
 	local function addComponent()
-		local instanceComponent = instanceTrove:Construct(self._module, instance)
-		instanceEntry.comp = instanceComponent
+		local instanceComponent = self._module.new(instance)
+		if instanceComponent.Destory or instanceComponent.destory then
+			instanceTrove:Add(instanceComponent)
+		end
 
+		instanceEntry.comp = instanceComponent
 		instanceTrove:Add(function()
 			instanceEntry.comp = nil
 		end)
@@ -139,7 +142,9 @@ function Component._registerInstance<T>(self: Component<T>, instance: Instance)
 
 		self.RemovingComponentSignal:Fire(instanceComponent, instance)
 		instanceEntry.comp = nil
-		self._trove:Remove(instanceComponent)
+		if instanceComponent.Destory or instanceComponent.destory then
+			instanceTrove:Remove(instanceComponent)
+		end
 	end
 
 	instanceTrove:Connect(instance.AncestryChanged, function(_, parent)
