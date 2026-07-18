@@ -113,12 +113,12 @@ function Structure.tuple<T...>(...: T...): T...
 		error(err)
 	end
 
-	local types, hasVarg, checkErr = tupleTypeCheck(...)
-	if not types or not hasVarg then
+	local types, hasVararg, checkErr = tupleTypeCheck(...)
+	if not types or hasVararg == nil then
 		error(checkErr or "Unknown error while checking tuple")
 	end
 
-	local matcher = tupleMatcher(types, hasVarg)
+	local matcher = tupleMatcher(types, hasVararg)
 	return tupleCast(Type.new("tuple", matcher, types))
 end
 
