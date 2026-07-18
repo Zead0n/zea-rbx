@@ -32,22 +32,18 @@ local function tupleTypeCheck<T...>(...): ({ Type.Type }?, boolean?, string?)
 
 	for index, argType: Type.Type in types do
 		if not Type.isZtType(argType) then
-			local warnMsg =
-				`tuple: argument #{index} is not a zType.\nthis will affect the order which values are checked`
-			local msg = debug.traceback(warnMsg, 3)
-			warn(msg)
-			continue
+			return nil, nil, `tuple: argument #{index} is not a zType.`
 		end
 
 		if argType.kind == "tuple" then
-			return nil, nil, "tuple cannot have a tuple within."
+			return nil, nil, "tuple: cannot have a tuple within."
 		end
 
-		if argType.kind == "vararg" then
+		if argType.kind ~= "vararg" then
 			if index == #types then
 				hasVarg = true
 			else
-				return nil, nil, "vararg type can only be at the end of a tuple."
+				return nil, nil, "tuple: vararg type can only be at the end of a tuple."
 			end
 		end
 	end
@@ -271,21 +267,25 @@ function Structure.wrapReturnsFn<Rets...>(returns: () -> Rets..., fn: (...any) -
 end
 
 function Structure.struct<T>(template: T): T
-	(Raw.table :: any):assert(template)
+	assert(typeof(template) == "table", "expected a table to create struct")
 
 	local genericTemplate = {}
 	for keyType, elemType in template :: any do
 		if not Type.isZtType(elemType) then
-			error(`'{tostring(keyType)}' is not, zType`, 2)
+			error(`value of '{tostring(keyType)}' is not, zType`, 2)
 		end
 
 		if not Type.isZtType(keyType) then
 			continue
 		end
 
-		if genericTemplate[keyType] then
+		local existingGenericKey = genericTemplate[keyType]
+		if existingGenericKey then
 			warn(
-				`failed to set generic key type '{tostring(keyType)}'.\n{tostring(genericTemplate[keyType])} already assigned.`
+				debug.traceback(
+					`failed to set generic key type '{tostring(keyType)}'.\n'{tostring(existingGenericKey)}' already assigned.`,
+					2
+				)
 			)
 			continue
 		end
@@ -306,7 +306,7 @@ function Structure.struct<T>(template: T): T
 			if elemType then
 				local ok: boolean = elemType:matches(elem)
 				if not ok then
-					table.insert(errors, `{tostring(key)} is type {typeof(elem)}, expected {tostring(elemType)}`)
+					table.insert(errors, `'{tostring(key)}' key is type {typeof(elem)}, expected {tostring(elemType)}`)
 				end
 
 				continue
@@ -325,9 +325,9 @@ function Structure.struct<T>(template: T): T
 				if not matchesElem then
 					table.insert(
 						errors,
-						`generic key type '{tostring(genericKeyType)}' has value type {typeof(elem)}. expected {tostring(
+						`generic key '{tostring(genericKeyType)}' has value type '{typeof(elem)}'. expected '{tostring(
 							genericElemType
-						)}`
+						)}'`
 					)
 				end
 
@@ -340,7 +340,10 @@ function Structure.struct<T>(template: T): T
 		end
 
 		local isValid = #errors <= 0
-		return isValid, if not isValid then table.concat(errors, "\n") else nil
+		return isValid,
+			if not isValid
+				then `'{typeof(value)}' does not match struct, errors:\n{table.concat(errors, "\n")}`
+				else nil
 	end
 
 	return Type.new("table", matcher)
