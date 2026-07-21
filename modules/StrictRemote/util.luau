@@ -6,7 +6,7 @@ local util = {}
 
 function util.assert(ok: boolean, err: string?, ...)
 	if not ok then
-		error(err, 2)
+		error(err, 3)
 	end
 
 	return ...

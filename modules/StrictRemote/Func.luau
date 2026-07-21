@@ -69,7 +69,7 @@ end
 function Func.InvokeServer<A..., R...>(self: Func<A..., R...>, ...: A...): R...
 	local ok, err = self._resolver(self._args, ...)
 	if not ok then
-		error(err)
+		error(err, 2)
 	end
 
 	return util.assert(self._resolver(self._returns, self.remote:InvokeServer(...)))
@@ -78,7 +78,7 @@ end
 function Func.InvokeClient<A..., R...>(self: Func<A..., R...>, player: Player, ...: A...): R...
 	local ok, err = self._resolver(self._args, ...)
 	if not ok then
-		error(err)
+		error(err, 2)
 	end
 
 	return util.assert(self._resolver(self._returns, self.remote:InvokeClient(player, ...)))
