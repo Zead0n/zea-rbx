@@ -59,7 +59,7 @@ end
 function Type.concatAssert<T...>(self: Type, concatErr: string, ...: T...): T...
 	local ok, reason = self:matches(...)
 	if not ok then
-		error(`{concatErr}{reason}`, 2)
+		error(`{concatErr}{reason}`, 3)
 	end
 
 	return ...
