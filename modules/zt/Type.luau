@@ -16,7 +16,7 @@ Type.__tostring = function(self: Type)
 	local msg = self.kind
 	local chainStrings = self:_chainStrings()
 
-	if chainStrings then
+	if #chainStrings > 0 then
 		msg ..= `({table.concat(chainStrings, ", ")})`
 	end
 
