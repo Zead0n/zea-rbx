@@ -132,7 +132,7 @@ function Loader.createStarter(scripts: { ModuleScript }, functionName: string, i
 
 		local finishedCalls = 0
 
-		for i, call in callers do
+		for _, call in callers do
 			task.defer(function(...)
 				local result = call(...)
 				if result then
