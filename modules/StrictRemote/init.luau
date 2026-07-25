@@ -26,7 +26,7 @@ function StrictRemote.init(config: Config)
 end
 
 function StrictRemote.event(name: string, resolver: Util.Resolver, parent: Instance?)
-	return function<A...>(args: (A...) -> A...): Event<A...>
+	return function<A...>(args: (A...) -> ...any): Event<A...>
 		return Event.new(name, parent or script, resolver, args)
 	end
 end
