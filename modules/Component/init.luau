@@ -122,7 +122,7 @@ function Component._registerInstance<T>(self: Component<T>, instance: Instance)
 
 	local function addComponent()
 		local instanceComponent = self._module.new(instance)
-		if instanceComponent.Destory or instanceComponent.destory then
+		if instanceComponent.Destroy or instanceComponent.destroy then
 			instanceTrove:Add(instanceComponent)
 		end
 
@@ -142,7 +142,7 @@ function Component._registerInstance<T>(self: Component<T>, instance: Instance)
 
 		self.RemovingComponentSignal:Fire(instanceComponent, instance)
 		instanceEntry.comp = nil
-		if instanceComponent.Destory or instanceComponent.destory then
+		if instanceComponent.Destroy or instanceComponent.destroy then
 			instanceTrove:Remove(instanceComponent)
 		end
 	end
@@ -249,7 +249,7 @@ function Component.addInstancePromise<T>(self: Component<T>, instance: Instance)
 end
 
 --[[
-	Destory and unregister all components
+	Destroy and unregister all components
 ]]
 function Component.Destroy<T>(self: Component<T>)
 	task.spawn(self._trove:WrapClean())
