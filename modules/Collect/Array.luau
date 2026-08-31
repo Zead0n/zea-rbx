@@ -23,6 +23,10 @@ function Array.new<T>(array: { T }): Array<T>
 	return self
 end
 
+function Array.copy<T>(self: Array<T>, deep: boolean?): Array<T>
+	return Array.new(copy(self.array, deep))
+end
+
 function Array.map<T, R>(self: Array<T>, transform: (T, number, { T }) -> R?): Array<R>
 	local newArray: { R } = {}
 
@@ -49,8 +53,12 @@ function Array.filter<T>(self: Array<T>, predicate: (T, number, { T }) -> boolea
 	return Array.new(newArray)
 end
 
-function Array.copy<T>(self: Array<T>, deep: boolean?): Array<T>
-	return Array.new(copy(self.array, deep))
+function Array.sort<T>(self: Array<T>, callback: ((T, T) -> boolean)?): Array<T>
+	local newArray = self:copy()
+
+	table.sort(newArray, callback)
+
+	return Array.new(newArray)
 end
 
 function Array.collect<T>(self: Array<T>): { T }
