@@ -31,7 +31,7 @@ function StrictRemote.event(name: string, resolver: Util.Resolver, parent: Insta
 	end
 end
 
-function StrictRemote.func<T>(name: string, resolver: Util.Resolver, parent: Instance?)
+function StrictRemote.func(name: string, resolver: Util.Resolver, parent: Instance?)
 	return function<A..., R...>(args: (A...) -> ...any, ret: (...any) -> R...): Func<(A...), (R...)>
 		return Func.new(name, parent or script, resolver, args, ret)
 	end

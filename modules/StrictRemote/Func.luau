@@ -11,8 +11,6 @@ Func.__index = Func
 
 export type Func<A..., R...> = typeof(setmetatable(
 	{} :: {
-		OnServerInvoke: (Player, A...) -> R...,
-		OnClientInvoke: (A...) -> R...,
 		remote: RemoteFunction,
 		_resolver: util.Resolver,
 		_args: (A...) -> ...any,
