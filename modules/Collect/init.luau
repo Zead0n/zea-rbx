@@ -1,12 +1,12 @@
-local Array = require(script.Array)
-local Dictionary = require(script.Dictionary)
+--!strict
+local Tbl = require(script.Tbl)
 
-export type Array<T> = Array.Array<T>
-export type Dictionary<K, V> = Dictionary.Dictionary<K, V>
+export type Sieve<K, V> = Tbl.Table<K, V>
 
-local Iter = {}
+local Sieve = {}
 
-Iter.array = Array.new
-Iter.dictionary = Dictionary.new
+local mt = {
+	__call = Tbl.new,
+}
 
-return Iter
+return setmetatable(Sieve, mt)
