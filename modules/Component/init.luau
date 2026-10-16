@@ -1,16 +1,22 @@
+--!strict
+
 local CollectionService = game:GetService("CollectionService")
 
 local Promise = require(script.Parent.Promise)
 local Signal = require(script.Parent.Signal)
-local Trove = require(script.Parent.Trove)
 
 local DEFAULT_ANCESTORS: { Instance } = { game:GetService("Workspace"), game:GetService("Players") }
+
+type Destroyable<T> = {
+	destroy: ((T, ...any) -> ())?,
+	Destroy: ((T, ...any) -> ())?,
+}
 
 type ClassLike<T> = {
 	new: (Instance, ...any) -> T,
 }
 
-type ComponentEntry<T> = { comp: T?, trove: Trove.Trove }
+type ComponentEntry<T> = { comp: T?, conn: RBXScriptConnection }
 
 local Component = {}
 Component.__index = Component
@@ -20,8 +26,10 @@ export type Component<T> = typeof(setmetatable(
 		_tag: string,
 		_ancestors: { Instance },
 		_module: ClassLike<T>,
-		_trove: Trove.Trove,
+		_argFunc: ((Instance) -> ...any)?,
 		_instanceRegistry: { [Instance]: ComponentEntry<T> },
+		_addedConn: RBXScriptConnection,
+		_removedConn: RBXScriptConnection,
 		--[[
 			Fires when a ComponentInstance has been instantiated
 		]]
@@ -36,10 +44,14 @@ export type Component<T> = typeof(setmetatable(
 
 --[[
 	Create a new Component.
+	- `config` is a table, including the `tag` and `ancestors` fields
+		- `tag` is the tag you want to observe
+		- `ancestors` is the only ancestors you want your component to be loaded
 	- `module` is the 'class' module you want to pass the Instance into
-	- `tag` is the tag you want to observe
-	- `ancestors` is the only ancestors you want your component to be loaded
 		(optional / defaults to **{ game:GetService("Workspace"), game:GetService("Players") }**)
+	- `argFunc` is an optional function that is called to generate the arguments that will be passed into the module 'class'
+		NOTE: luau type solver is unable to check the arguments being generated and passed into the class.
+		Make sure your arguments align with your parameters
 	
 	Your class module is **REQUIRED** to have a `new` function that accepts an `Instance`.
 
@@ -58,10 +70,10 @@ export type Component<T> = typeof(setmetatable(
 		SomeClass
 	))
 	
-	function SomeClass.new(instance: Instance): SomeInstance
+	function SomeClass.new(instance: Instance, data: number): SomeInstance
 		local self = setmetatable({}, SomeClass) :: SomeInstance
 		self.Instance = instance
-		self.someData = 15
+		self.someData = data
 		return self
 	end
 	
@@ -78,27 +90,38 @@ export type Component<T> = typeof(setmetatable(
 	-- SomeComponent/init.luau
 	local SomeClass = require(script.SomeClass)
 	local Component = require(path.to.Component)
-	return Component.new(SomeClass, "SomeComponent") :: Component.Component<SomeClass.SomeInstance>
+	return Component.new({ tag = "SomeComponent" }, SomeClass, function(instance)
+		local initialValue = instance:GetAttribute("InitialValue")
+		return initialValue or 45
+	end) :: Component.Component<SomeClass.SomeInstance>
 	```
 ]]
-function Component.new<T>(module: ClassLike<T>, tag: string, ancestors: { Instance }?): Component<T>
+function Component.new<T>(
+	config: {
+		tag: string,
+		ancestors: { Instance }?,
+	},
+	module: ClassLike<T>,
+	argFunc: ((Instance) -> ...any)?
+): Component<T>
 	local self = setmetatable({}, Component) :: Component<T>
-	self._tag = tag
-	self._ancestors = (ancestors or DEFAULT_ANCESTORS) :: { Instance }
+	self._tag = config.tag
+	self._ancestors = (config.ancestors or DEFAULT_ANCESTORS) :: { Instance }
 	self._module = module
-	self._trove = Trove.new()
+	self._argFunc = argFunc
 	self._instanceRegistry = {}
-	self.AddedComponentSignal = self._trove:Construct(Signal)
-	self.RemovingComponentSignal = self._trove:Construct(Signal)
 
-	self._trove:Connect(CollectionService:GetInstanceAddedSignal(tag), function(instance: Instance)
+	self.AddedComponentSignal = Signal.new()
+	self.RemovingComponentSignal = Signal.new()
+
+	self._addedConn = CollectionService:GetInstanceAddedSignal(self._tag):Connect(function(instance: Instance)
 		self:_registerInstance(instance)
 	end)
-	self._trove:Connect(CollectionService:GetInstanceRemovedSignal(tag), function(instance: Instance)
-		self:_degisterInstance(instance)
+	self._removedConn = CollectionService:GetInstanceRemovedSignal(self._tag):Connect(function(instance: Instance)
+		self:_deregisterInstance(instance)
 	end)
 
-	for _, taggedInstance in CollectionService:GetTagged(tag) do
+	for _, taggedInstance in CollectionService:GetTagged(self._tag) do
 		self:_registerInstance(taggedInstance)
 	end
 
@@ -106,9 +129,7 @@ function Component.new<T>(module: ClassLike<T>, tag: string, ancestors: { Instan
 end
 
 function Component._registerInstance<T>(self: Component<T>, instance: Instance)
-	local instanceTrove = self._trove:Extend()
-	local instanceEntry: ComponentEntry<T> = { trove = instanceTrove }
-	self._instanceRegistry[instance] = instanceEntry
+	local instanceEntry: ComponentEntry<T> = nil
 
 	local function descendantCheck(): boolean
 		for _, ancestor in self._ancestors do
@@ -121,16 +142,15 @@ function Component._registerInstance<T>(self: Component<T>, instance: Instance)
 	end
 
 	local function addComponent()
-		local instanceComponent = self._module.new(instance)
-		if instanceComponent.Destroy or instanceComponent.destroy then
-			instanceTrove:Add(instanceComponent)
+		local instanceComponent = if self._argFunc
+			then self._module.new(instance, self._argFunc(instance))
+			else self._module.new(instance) :: T?
+
+		if not instanceComponent then
+			return
 		end
 
 		instanceEntry.comp = instanceComponent
-		instanceTrove:Add(function()
-			instanceEntry.comp = nil
-		end)
-
 		self.AddedComponentSignal:Fire(instanceComponent, instance)
 	end
 
@@ -142,18 +162,18 @@ function Component._registerInstance<T>(self: Component<T>, instance: Instance)
 
 		self.RemovingComponentSignal:Fire(instanceComponent, instance)
 		instanceEntry.comp = nil
-		if instanceComponent.Destroy or instanceComponent.destroy then
-			instanceTrove:Remove(instanceComponent)
-		end
 	end
 
-	instanceTrove:Connect(instance.AncestryChanged, function(_, parent)
-		if parent and descendantCheck() then
-			addComponent()
-		else
-			removeComponent()
-		end
-	end)
+	instanceEntry = {
+		conn = instance.AncestryChanged:Connect(function(_, parent)
+			if parent and descendantCheck() then
+				addComponent()
+			else
+				removeComponent()
+			end
+		end),
+	}
+	self._instanceRegistry[instance] = instanceEntry
 
 	if descendantCheck() then
 		addComponent()
@@ -168,7 +188,18 @@ function Component._deregisterInstance<T>(self: Component<T>, instance: Instance
 		return
 	end
 
-	instanceEntry.trove:Clean()
+	instanceEntry.conn:Disconnect()
+
+	-- NOTE: type solver doesn't like checking for 'Desstroyable' for some reason
+	local comp: any = instanceEntry.comp
+	if comp then
+		if comp.destroy ~= nil and typeof(comp.destroy) == "function" then
+			comp:destroy()
+		elseif comp.Destroy ~= nil and typeof(comp.Destroy) == "function" then
+			comp:Destroy()
+		end
+	end
+
 	registry[instance] = nil
 end
 
@@ -196,6 +227,8 @@ end
 
 --[[
 	Returns a Promise of the retrieved ComponentInstance.
+
+	`WARN`: The promise does **NOT** cancel when Component is destroyed; manual cancellation may be needed
 ]]
 function Component.getComponentPromise<T>(self: Component<T>, instance: Instance): Promise.TypedPromise<T>
 	local instanceComponent = self:getComponent(instance)
@@ -203,9 +236,7 @@ function Component.getComponentPromise<T>(self: Component<T>, instance: Instance
 		return Promise.resolve(instanceComponent)
 	end
 
-	-- NOTE: Trove 'AddPromise' method doesn't support typed promises without the lsp screaming.
-	-- Waiting for https://github.com/Sleitnick/RbxUtil/pull/263
-	local promise = Promise.fromEvent(self.AddedComponentSignal, function(component, cinstance)
+	local promise = Promise.fromEvent(self.AddedComponentSignal, function(component, cinstance: Instance)
 		local match = cinstance == instance
 		if match then
 			instanceComponent = component
@@ -213,16 +244,12 @@ function Component.getComponentPromise<T>(self: Component<T>, instance: Instance
 		return match
 	end):andThenReturn(instanceComponent)
 
-	self._trove:Add(function()
-		promise:cancel()
-	end)
-
 	return promise
 end
 
 --[[
 	Returns ComponentInstance of the passed Instance.
-	If no ComponentInstance if found, wait for Instance to register until `timeout`.
+	If no ComponentInstance if found, wait for Instance to register until `timeout` (defaults to 5).
 ]]
 function Component.waitForComponent<T>(self: Component<T>, instance: Instance, timeout: number?): T?
 	return self:getComponentPromise(instance)
@@ -242,17 +269,27 @@ end
 
 --[[
 	Adds component tag to instance and returns Promise of added ComponentInstance.
+
+	`WARN`: The promise does **NOT** cancel when Component is destroyed; manual cancellation may be needed
 ]]
 function Component.addInstancePromise<T>(self: Component<T>, instance: Instance): Promise.TypedPromise<T>
 	instance:AddTag(self._tag)
-	return self:waitForComponent(instance)
+	return self:getComponentPromise(instance)
 end
 
 --[[
-	Destroy and unregister all components
+	Destroy and deregister all components
 ]]
 function Component.Destroy<T>(self: Component<T>)
-	task.spawn(self._trove:WrapClean())
+	self._addedConn:Disconnect()
+	self._removedConn:Disconnect()
+
+	self.AddedComponentSignal:Destroy()
+	self.RemovingComponentSignal:Destroy()
+
+	for inst, _ in self._instanceRegistry do
+		self:_deregisterInstance(inst)
+	end
 end
 
 return Component
