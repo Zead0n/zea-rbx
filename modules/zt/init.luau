@@ -60,7 +60,7 @@ zt.wrapFn = Structure.wrapFn
 zt.wrapArgsFn = Structure.wrapArgsFn
 zt.wrapReturnsFn = Structure.wrapReturnsFn
 
-zt.IsA = function(obj: string)
+zt.IsA = function<T>(obj: string): T
 	local objClass = Classes[obj]
 	if not objClass then
 		error(`'{obj}' Class type is not valid, or is missing`)
