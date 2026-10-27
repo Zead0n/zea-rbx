@@ -11,7 +11,7 @@ local function robloxClass(obj: string)
 		local valueTypeName = typeof(value)
 		if not value:IsA(obj) then
 			return false,
-				`value is a '{if valueTypeName == "Instance" then value.ClassName else valueTypeName}' Object, expected {obj}`
+				`value is a '{if valueTypeName == "Instance" then value.ClassName else valueTypeName}', expected {obj}`
 		end
 
 		return true
