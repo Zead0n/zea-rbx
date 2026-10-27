@@ -1,6 +1,6 @@
 --!strict
 
-export type Resolver = (any, ...any) -> (boolean, string?, ...any)
+export type Resolver = (any, ...any) -> (boolean, string?)
 
 local util = {}
 
